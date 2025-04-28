@@ -28,18 +28,24 @@ HASH_DEVICE:=/dev/sdb
 .DEFAULT_GOAL := all
 
 all: out/initrd.img out/rootfs.tar.gz
+	@echo  "\033[0;33m--- Making $@ ---\033[0m"
 
 clean:
+	@echo  "\033[0;33m--- Making $@ ---\033[0m"
 	find -name '*.o' -print0 | xargs -0 -r rm
 	rm -rf bin rootfs out
 
 rootfs: out/rootfs.vhd
+	@echo  "\033[0;33m--- Making $@ ---\033[0m"
 
-snp: out/kernel.vmgs out/rootfs-verity.vhd out/v2056.vmgs out/v2056combined.vmgs
+snp: out/initrd.img out/kernel.vmgs out/rootfs-verity.vhd out/v2056.vmgs out/v2056combined.vmgs
+	@echo  "\033[0;33m--- Making $@ ---\033[0m"
 
 simple: out/simple.vmgs snp
+	@echo  "\033[0;33m--- Making $@ ---\033[0m"
 
 %.vmgs: %.bin
+	@echo  "\033[0;33m--- Making $@ ---\033[0m"
 	rm -f $@
 	# du -BM returns the size of the bin file in M, eg 7M. The sed command replaces the M with *1024*1024 and then bc does the math to convert to bytes
 	$(PATH_PREFIX)/$(VMGS_TOOL) create --filepath $@ --filesize `du -BM $< | sed  "s/M.*/*1024*1024/" | bc`
@@ -47,6 +53,7 @@ simple: out/simple.vmgs snp
 
 # Simplest debug UVM used to test changes to the linux kernel. No dmverity protection. Boots an initramdisk rather than directly booting a vhd disk.
 out/simple.bin: out/initrd.img $(PATH_PREFIX)/$(KERNEL_PATH) boot/startup_simple.sh
+	@echo  "\033[0;33m--- Making $@ ---\033[0m"
 	rm -f $@
 	python3 $(PATH_PREFIX)/$(IGVM_TOOL) \
 		-o $@ \
@@ -128,6 +135,7 @@ out/simple.bin: out/initrd.img $(PATH_PREFIX)/$(KERNEL_PATH) boot/startup_simple
 # Debug build for use with uvmtester. UVM with dm-verity protected vhd disk mounted directly via the kernel command line.
 # Ignores corruption in dm-verity protected disk. (Use dmesg to see if dm-verity is ignoring data corruption.)
 out/v2056.bin: out/rootfs.vhd out/rootfs.hash.vhd $(PATH_PREFIX)/$(KERNEL_PATH) out/rootfs.hash.datasectors out/rootfs.hash.datablocksize out/rootfs.hash.hashblocksize out/rootfs.hash.datablocks out/rootfs.hash.rootdigest out/rootfs.hash.salt boot/startup_v2056.sh
+	@echo  "\033[0;33m--- Making $@ ---\033[0m"
 	rm -f $@
 	python3 $(PATH_PREFIX)/$(IGVM_TOOL) \
 		-o $@ \
@@ -136,6 +144,7 @@ out/v2056.bin: out/rootfs.vhd out/rootfs.hash.vhd $(PATH_PREFIX)/$(KERNEL_PATH) 
 		-vtl 0
 
 out/v2056combined.bin: out/rootfs-verity.vhd $(PATH_PREFIX)/$(KERNEL_PATH) out/rootfs.hash.datablocksize out/rootfs.hash.hashblocksize out/rootfs.hash.datablocks out/rootfs.hash.rootdigest out/rootfs.hash.salt boot/startup_v2056.sh
+	@echo  "\033[0;33m--- Making $@ ---\033[0m"
 	rm -f $@
 	echo root=/dev/dm-0 dm-mod.create=\"dmverity,,,ro,0 $(shell cat out/rootfs.hash.datasectors) verity 1 $(ROOTFS_DEVICE) $(ROOTFS_DEVICE) $(shell cat out/rootfs.hash.datablocksize) $(shell cat out/rootfs.hash.hashblocksize) $(shell cat out/rootfs.hash.datablocks) $(shell cat out/rootfs.hash.datablocks) sha256 $(shell cat out/rootfs.hash.rootdigest) $(shell cat out/rootfs.hash.salt) 1 ignore_corruption\"
 	python3 $(PATH_PREFIX)/$(IGVM_TOOL) \
@@ -146,6 +155,7 @@ out/v2056combined.bin: out/rootfs-verity.vhd $(PATH_PREFIX)/$(KERNEL_PATH) out/r
 
 # Full UVM with dm-verity protected vhd disk mounted directly via the kernel command line.
 out/kernel.bin: out/rootfs-verity.vhd $(PATH_PREFIX)/$(KERNEL_PATH) out/rootfs.hash.datasectors out/rootfs.hash.datablocksize out/rootfs.hash.hashblocksize out/rootfs.hash.datablocks out/rootfs.hash.rootdigest out/rootfs.hash.salt boot/startup.sh
+	@echo  "\033[0;33m--- Making $@ ---\033[0m"
 	rm -f $@
 	echo root=/dev/dm-0 dm-mod.create=\"dmverity,,,ro,0 $(shell cat out/rootfs.hash.datasectors) verity 1 $(ROOTFS_DEVICE) $(ROOTFS_DEVICE) $(shell cat out/rootfs.hash.datablocksize) $(shell cat out/rootfs.hash.hashblocksize) $(shell cat out/rootfs.hash.datablocks) $(shell cat out/rootfs.hash.datablocks) sha256 $(shell cat out/rootfs.hash.rootdigest) $(shell cat out/rootfs.hash.salt)\"
 	python3 $(PATH_PREFIX)/$(IGVM_TOOL) \
@@ -156,13 +166,16 @@ out/kernel.bin: out/rootfs-verity.vhd $(PATH_PREFIX)/$(KERNEL_PATH) out/rootfs.h
 
 # Rule to make a vhd from a file. This is used to create the rootfs.hash.vhd from rootfs.hash.
 %.vhd: % $(TAR2EXT4_TOOL)
+	@echo  "\033[0;33m--- Making $@ ---\033[0m"
 	$(TAR2EXT4_TOOL) -only-vhd -i $< -o $@
 
 # Rule to make a vhd from an ext4 file. This is used to create the rootfs.vhd from rootfs.ext4.
 %.vhd: %.ext4 $(TAR2EXT4_TOOL)
+	@echo  "\033[0;33m--- Making $@ ---\033[0m"
 	$(TAR2EXT4_TOOL) -only-vhd -i $< -o $@
 
 %.hash %.hash.info %.hash.datablocks %.hash.rootdigest %hash.datablocksize %.hash.datasectors %.hash.hashblocksize: %.ext4 %.hash.salt
+	@echo  "\033[0;33m--- Making $@ ---\033[0m"
 	veritysetup format --no-superblock --salt $(shell cat out/rootfs.hash.salt) $< $*.hash > $*.hash.info
     # Retrieve info required by dm-verity at boot time
     # Get the blocksize of rootfs
@@ -174,24 +187,42 @@ out/kernel.bin: out/rootfs-verity.vhd $(PATH_PREFIX)/$(KERNEL_PATH) out/rootfs.h
 	echo $$(( $$(cat $*.hash.datablocks) * $$(cat $*.hash.datablocksize) / 512 )) > $*.hash.datasectors
 
 out/rootfs.hash.salt:
+	@echo  "\033[0;33m--- Making $@ ---\033[0m"
 	hexdump -vn32 -e'8/4 "%08X" 1 "\n"' /dev/random > $@
 
 out/rootfs.ext4: out/rootfs.tar.gz $(TAR2EXT4_TOOL)
+	@echo  "\033[0;33m--- Making $@ ---\033[0m"
 	gzip -f -d ./out/rootfs.tar.gz
 	$(TAR2EXT4_TOOL) -i ./out/rootfs.tar -o $@
 
 out/rootfs-verity.ext4: out/rootfs.ext4 out/rootfs.hash
+	@echo  "\033[0;33m--- Making $@ ---\033[0m"
 	cp out/rootfs.ext4 $@
 	cat out/rootfs.hash >> $@
 
 out/rootfs.tar.gz: out/initrd.img
+	@echo  "\033[0;33m--- Making $@ ---\033[0m"
 	rm -rf rootfs-conv
 	mkdir rootfs-conv
 	gunzip -c out/initrd.img | (cd rootfs-conv && cpio -imd)
 	tar -zcf $@ -C rootfs-conv .
-	rm -rf rootfs-conv
+	ls -la rootfs-conv
+	#rm -rf rootfs-conv
 
 out/initrd.img: $(BASE) $(DELTA_TARGET) $(SRCROOT)/hack/catcpio.sh
-	$(SRCROOT)/hack/catcpio.sh "$(BASE)" $(DELTA_TARGET) > out/initrd.img.uncompressed
+	@echo  "\033[0;33m--- Making $@ ---\033[0m"
+	TAR_OPTIONS="--recursive-unlink --unlink-first" $(SRCROOT)/hack/catcpio.sh "$(BASE)" $(DELTA_TARGET) > out/initrd.img.uncompressed
 	gzip -c out/initrd.img.uncompressed > $@
 	rm out/initrd.img.uncompressed
+
+
+out/initrd-snp.img: $(BASE) out/delta-snp.tar.gz $(SRCROOT)/hack/catcpio.sh
+	@echo  "\033[0;33m--- Making $@ ---\033[0m"
+	sudo TAR_OPTIONS="--recursive-unlink --unlink-first" $(SRCROOT)/hack/catcpio.sh "$(BASE)" out/delta-snp.tar.gz > out/initrd-snp.img.uncompressed
+	gzip -c out/initrd-snp.img.uncompressed > $@
+	rm out/initrd-snp.img.uncompressed
+
+
+out/initrd-snp-mariner: $(BASE) out/delta-snp.tar.gz out/initrd-snp.img # out/mariner-delta-snp.tar.gz
+	@echo  "\033[0;33m--- Making $@ ---\033[0m"
+
