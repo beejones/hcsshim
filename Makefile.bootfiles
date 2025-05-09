@@ -211,18 +211,18 @@ out/rootfs.tar.gz: out/initrd.img
 
 out/initrd.img: $(BASE) $(DELTA_TARGET) $(SRCROOT)/hack/catcpio.sh
 	@echo  "\033[0;33m--- Making $@ ---\033[0m"
-	TAR_OPTIONS="--recursive-unlink --unlink-first" $(SRCROOT)/hack/catcpio.sh "$(BASE)" $(DELTA_TARGET) > out/initrd.img.uncompressed
+	TAR_OPTIONS="" $(SRCROOT)/hack/catcpio.sh "$(BASE)" $(DELTA_TARGET) > out/initrd.img.uncompressed
 	gzip -c out/initrd.img.uncompressed > $@
 	rm out/initrd.img.uncompressed
 
 
-out/initrd-snp.img: $(BASE) out/delta-snp.tar.gz $(SRCROOT)/hack/catcpio.sh
-	@echo  "\033[0;33m--- Making $@ ---\033[0m"
-	sudo TAR_OPTIONS="--recursive-unlink --unlink-first" $(SRCROOT)/hack/catcpio.sh "$(BASE)" out/delta-snp.tar.gz > out/initrd-snp.img.uncompressed
-	gzip -c out/initrd-snp.img.uncompressed > $@
-	rm out/initrd-snp.img.uncompressed
+#out/initrd-snp.img: $(BASE) out/delta-snp.tar.gz $(SRCROOT)/hack/catcpio.sh
+#	@echo  "\033[0;33m--- Making $@ ---\033[0m"
+#	sudo TAR_OPTIONS="--recursive-unlink --unlink-first" $(SRCROOT)/hack/catcpio.sh "$(BASE)" out/delta-snp.tar.gz > out/initrd-snp.img.uncompressed
+#	gzip -c out/initrd-snp.img.uncompressed > $@
+#	rm out/initrd-snp.img.uncompressed
 
 
-out/initrd-snp-mariner: $(BASE) out/delta-snp.tar.gz out/initrd-snp.img # out/mariner-delta-snp.tar.gz
-	@echo  "\033[0;33m--- Making $@ ---\033[0m"
+#out/initrd-snp-mariner: $(BASE) out/delta-snp.tar.gz out/initrd-snp.img # out/mariner-delta-snp.tar.gz
+#	@echo  "\033[0;33m--- Making $@ ---\033[0m"
 
